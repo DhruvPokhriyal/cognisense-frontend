@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, cloneElement } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
@@ -37,7 +37,10 @@ const RequireAuth = ({ children }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
-        <div className="text-gray-300 text-sm">Loading...</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div className="text-gray-300 text-sm">Loading your dashboard...</div>
+        </div>
       </div>
     );
   }
@@ -46,7 +49,7 @@ const RequireAuth = ({ children }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  return children;
+  return cloneElement(children, { user });
 };
 
 function App() {
