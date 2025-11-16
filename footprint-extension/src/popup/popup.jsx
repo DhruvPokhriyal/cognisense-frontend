@@ -3,7 +3,10 @@
 import React, { useEffect, useState } from "react";
 import "./popup-simple.css";
 import { formatDuration } from "../utils/analytics.js";
-import { getCategoryDisplayName, getCategoryIcon } from "../utils/categories.js";
+import {
+    getCategoryDisplayName,
+    getCategoryIcon,
+} from "../utils/categories.js";
 
 function secToMin(seconds) {
     return Math.round(seconds / 60);
@@ -48,7 +51,8 @@ const Popup = () => {
                         (tabs) => {
                             if (tabs[0] && tabs[0].url) {
                                 try {
-                                    const domain = new URL(tabs[0].url).hostname;
+                                    const domain = new URL(tabs[0].url)
+                                        .hostname;
                                     setCurrentSite({
                                         domain,
                                         category: "other", // Will be updated with actual category
@@ -95,7 +99,7 @@ const Popup = () => {
                         category: "productivity",
                     },
                     {
-                        domain: "youtube.com", 
+                        domain: "youtube.com",
                         totalTime: 2400000, // 40 minutes in milliseconds
                         category: "entertainment",
                     },
@@ -110,10 +114,10 @@ const Popup = () => {
     // Handle pause/resume functionality
     const handlePauseResume = async () => {
         if (!isChrome) {
-            setPaused(p => !p);
+            setPaused((p) => !p);
             return;
         }
-        
+
         try {
             const messageType = paused ? "resumeTracking" : "pauseTracking";
             chrome.runtime.sendMessage({ type: messageType }, (response) => {
@@ -198,7 +202,9 @@ const Popup = () => {
 
             <div className="time-display">
                 <div className="main-time">
-                    <div className="time-value">{formatDuration(totalTimeSeconds * 1000)}</div>
+                    <div className="time-value">
+                        {formatDuration(totalTimeSeconds * 1000)}
+                    </div>
                     <div className="time-label">Today's Total</div>
                 </div>
             </div>
