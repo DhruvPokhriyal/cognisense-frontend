@@ -24,31 +24,45 @@ const Popup = () => {
     });
     const [loading, setLoading] = useState(true);
     const [displayTime, setDisplayTime] = useState(0); // For real-time display
-    const [lastUpdate, setLastUpdate] = useState(Date.now());
+    const [sessionStartTime, setSessionStartTime] = useState(Date.now()); // When current session started
+    const [pauseTime, setPauseTime] = useState(null); // When pause was clicked
 
     // Real-time timer effect
     useEffect(() => {
         const timer = setInterval(() => {
             if (!paused && !loading) {
-                setDisplayTime((prev) => {
-                    const now = Date.now();
-                    const elapsed = Math.floor((now - lastUpdate) / 1000);
-                    const newTime = totalTimeSeconds + elapsed;
-                    console.log(
-                        `⏱️ [POPUP] Timer update: ${totalTimeSeconds}s + ${elapsed}s = ${newTime}s`
-                    );
-                    return newTime;
-                });
-            } else {
-                setDisplayTime(totalTimeSeconds);
-                console.log(
-                    `⏸️ [POPUP] Timer paused/loading: showing ${totalTimeSeconds}s`
+                // When active, show base time + elapsed time since session start
+                const now = Date.now();
+                const sessionElapsed = Math.floor(
+                    (now - sessionStartTime) / 1000
                 );
+                const newDisplayTime = totalTimeSeconds + sessionElapsed;
+                setDisplayTime(newDisplayTime);
+                console.log(
+                    `⏱️ [POPUP] Active timer: ${totalTimeSeconds}s + ${sessionElapsed}s = ${newDisplayTime}s`
+                );
+            } else if (paused) {
+                // When paused, show the time at the moment of pause
+                if (pauseTime) {
+                    const pauseElapsed = Math.floor(
+                        (pauseTime - sessionStartTime) / 1000
+                    );
+                    const pausedDisplayTime = totalTimeSeconds + pauseElapsed;
+                    setDisplayTime(pausedDisplayTime);
+                    console.log(
+                        `⏸️ [POPUP] Paused timer: showing ${pausedDisplayTime}s (paused at +${pauseElapsed}s)`
+                    );
+                } else {
+                    setDisplayTime(totalTimeSeconds);
+                }
+            } else {
+                // Loading state
+                setDisplayTime(totalTimeSeconds);
             }
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [paused, totalTimeSeconds, lastUpdate, loading]);
+    }, [paused, totalTimeSeconds, sessionStartTime, pauseTime, loading]);
 
     // Periodic stats refresh
     useEffect(() => {
@@ -69,8 +83,18 @@ const Popup = () => {
                             console.log("✅ [POPUP] Stats refreshed:", resp);
                             setTotalTimeSeconds(resp.totalTime || 0);
                             setTopSites(resp.topSites || []);
+                            const wasPaused = paused;
                             setPaused(resp.isPaused || false);
-                            setLastUpdate(Date.now());
+
+                            // If pause state changed, update timing
+                            if (wasPaused !== (resp.isPaused || false)) {
+                                setSessionStartTime(Date.now());
+                                if (resp.isPaused) {
+                                    setPauseTime(Date.now());
+                                } else {
+                                    setPauseTime(null);
+                                }
+                            }
                         }
                     }
                 );
@@ -267,9 +291,30 @@ const Popup = () => {
             } to ${newState ? "PAUSED" : "ACTIVE"}`
         );
 
-        // Optimistically update UI for better responsiveness
+        // Handle timing state
+        if (newState) {
+            // Pausing - record the pause time
+            setPauseTime(Date.now());
+            console.log("⏸️ [POPUP] Recording pause time");
+        } else {
+            // Resuming - update base time and reset session start
+            const now = Date.now();
+            if (pauseTime) {
+                const pausedSessionTime = Math.floor(
+                    (pauseTime - sessionStartTime) / 1000
+                );
+                const newBaseTime = totalTimeSeconds + pausedSessionTime;
+                setTotalTimeSeconds(newBaseTime);
+                console.log(
+                    `▶️ [POPUP] Resuming: adding ${pausedSessionTime}s to base time, new base: ${newBaseTime}s`
+                );
+            }
+            setSessionStartTime(now);
+            setPauseTime(null);
+        }
+
+        // Update pause state immediately for UI responsiveness
         setPaused(newState);
-        setLastUpdate(Date.now());
 
         chrome.runtime.sendMessage({ type: action }, (response) => {
             if (chrome.runtime.lastError) {
@@ -277,39 +322,36 @@ const Popup = () => {
                     `🚨 [POPUP] Error ${action}:`,
                     chrome.runtime.lastError.message || chrome.runtime.lastError
                 );
-                // Revert optimistic update on error
+                // Revert state on error
                 setPaused(!newState);
+                if (!newState) {
+                    // If resume failed, restore pause time
+                    setPauseTime(Date.now());
+                }
                 return;
             }
 
             console.log(`✅ [POPUP] ${action} response:`, response);
 
-            if (response) {
-                if (response.error) {
-                    console.error(
-                        `🚨 [POPUP] ${action} returned error:`,
-                        response.error
-                    );
-                    setPaused(!newState); // Revert on error
-                } else if (response.success) {
-                    console.log(
-                        `✅ [POPUP] ${action} successful - state now: ${
-                            response.paused ? "PAUSED" : "ACTIVE"
-                        }`
-                    );
-                    setPaused(response.paused);
-                    setLastUpdate(Date.now());
-                } else {
-                    console.warn(
-                        `⚠️ [POPUP] ${action} response missing success flag:`,
-                        response
-                    );
-                }
+            if (response && response.success) {
+                console.log(
+                    `✅ [POPUP] ${action} successful - background state: ${
+                        response.paused ? "PAUSED" : "ACTIVE"
+                    }`
+                );
+                // Background confirms the state change
+                setPaused(response.paused);
+            } else if (response && response.error) {
+                console.error(
+                    `🚨 [POPUP] ${action} returned error:`,
+                    response.error
+                );
+                setPaused(!newState); // Revert on error
             } else {
                 console.warn(
-                    `⚠️ [POPUP] ${action} returned null/undefined response`
+                    `⚠️ [POPUP] ${action} unexpected response:`,
+                    response
                 );
-                setPaused(!newState); // Revert on null response
             }
         });
     };
