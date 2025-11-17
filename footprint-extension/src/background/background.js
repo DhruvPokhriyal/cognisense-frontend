@@ -15,7 +15,7 @@ let paused = false;
 const API_BASE_URL =
     process.env.VITE_API_BASE_URL || "https://your-backend-api.com";
 const SESSION_API = `${API_BASE_URL}/sessions`;
-const CONTENT_API = `${API_BASE_URL}/content-analysis`;
+const CONTENT_API = `${API_BASE_URL}/tracking/ingest`;
 const ENGAGEMENT_API = `${API_BASE_URL}/engagement`;
 
 // Development mode flag - set to false in production
@@ -121,7 +121,7 @@ async function sendSessionToBackend(
     try {
         const response = await fetch(SESSION_API, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "Authorization": "eyJhbGciOiJIUzI1NiIsImtpZCI6IlhsdkNmQkV0TW50dFNrbmwiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3R4YWVraXVvcnducHludGd5bmNxLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJiYjEzMTJkMi1mYzZhLTQ1M2QtYmU5OC0yYWM0NjkzZDhiOGUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzYzMzYwNTg1LCJpYXQiOjE3NjMzNTY5ODUsImVtYWlsIjoiYUBhLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJhQGEuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiYmIxMzEyZDItZmM2YS00NTNkLWJlOTgtMmFjNDY5M2Q4YjhlIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NjMzNTY5ODV9XSwic2Vzc2lvbl9pZCI6ImE3MjMyNGExLTJjNWItNGU5Yi05ZDE2LWQwNGU1ZGNiMTVmMSIsImlzX2Fub255bW91cyI6ZmFsc2V9.LaUNw15kGCw_FQSTdOmQxfl_YTYy__Ems2aqVz-O0_8" },
             body: JSON.stringify(payload),
         });
 
@@ -151,7 +151,7 @@ async function sendContentAnalysisToBackend(analysis) {
     try {
         const response = await fetch(CONTENT_API, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", "Authorization": "eyJhbGciOiJIUzI1NiIsImtpZCI6IlhsdkNmQkV0TW50dFNrbmwiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3R4YWVraXVvcnducHludGd5bmNxLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJiYjEzMTJkMi1mYzZhLTQ1M2QtYmU5OC0yYWM0NjkzZDhiOGUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzYzMzYwNTg1LCJpYXQiOjE3NjMzNTY5ODUsImVtYWlsIjoiYUBhLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJhQGEuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiYmIxMzEyZDItZmM2YS00NTNkLWJlOTgtMmFjNDY5M2Q4YjhlIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NjMzNTY5ODV9XSwic2Vzc2lvbl9pZCI6ImE3MjMyNGExLTJjNWItNGU5Yi05ZDE2LWQwNGU1ZGNiMTVmMSIsImlzX2Fub255bW91cyI6ZmFsc2V9.LaUNw15kGCw_FQSTdOmQxfl_YTYy__Ems2aqVz-O0_8" },
             body: JSON.stringify(analysis),
         });
 

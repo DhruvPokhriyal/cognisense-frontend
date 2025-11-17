@@ -573,8 +573,11 @@ function countSyllables(word) {
 // === MAIN BACKGROUND SCRIPT ===
 
 // API Configuration
-const API_BASE = "http://localhost:8000/api/v1";
-let API_TOKEN = null;
+const API_BASE =
+    "http://localhost:8000/api/v1";//process.env.VITE_API_BASE_URL || "https://your-backend-api.com";
+let API_TOKEN = "eyJhbGciOiJIUzI1NiIsImtpZCI6IlhsdkNmQkV0TW50dFNrbmwiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3R4YWVraXVvcnducHludGd5bmNxLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJiYjEzMTJkMi1mYzZhLTQ1M2QtYmU5OC0yYWM0NjkzZDhiOGUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzYzMzYwNTg1LCJpYXQiOjE3NjMzNTY5ODUsImVtYWlsIjoiYUBhLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJhQGEuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiYmIxMzEyZDItZmM2YS00NTNkLWJlOTgtMmFjNDY5M2Q4YjhlIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NjMzNTY5ODV9XSwic2Vzc2lvbl9pZCI6ImE3MjMyNGExLTJjNWItNGU5Yi05ZDE2LWQwNGU1ZGNiMTVmMSIsImlzX2Fub255bW91cyI6ZmFsc2V9.LaUNw15kGCw_FQSTdOmQxfl_YTYy__Ems2aqVz-O0_8";
+// Always use this exact Authorization header value for backend requests (no Bearer prefix)
+const AUTH_HEADER = "eyJhbGciOiJIUzI1NiIsImtpZCI6IlhsdkNmQkV0TW50dFNrbmwiLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL3R4YWVraXVvcnducHludGd5bmNxLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiJiYjEzMTJkMi1mYzZhLTQ1M2QtYmU5OC0yYWM0NjkzZDhiOGUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzYzMzYwNTg1LCJpYXQiOjE3NjMzNTY5ODUsImVtYWlsIjoiYUBhLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJhQGEuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiYmIxMzEyZDItZmM2YS00NTNkLWJlOTgtMmFjNDY5M2Q4YjhlIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NjMzNTY5ODV9XSwic2Vzc2lvbl9pZCI6ImE3MjMyNGExLTJjNWItNGU5Yi05ZDE2LWQwNGU1ZGNiMTVmMSIsImlzX2Fub255bW91cyI6ZmFsc2V9.LaUNw15kGCw_FQSTdOmQxfl_YTYy__Ems2aqVz-O0_8";
 
 // Enhanced logging system
 const Logger = {
@@ -668,6 +671,28 @@ async function initializeStorage() {
         Logger.info(
             `Tracking state: ${isTrackingPaused ? "PAUSED" : "ACTIVE"}`
         );
+
+        // Attempt to hydrate API token from local storage if present
+        try {
+            const tokens = await chrome.storage.local.get([
+                "authToken",
+                "access_token",
+                "supabaseToken",
+                "supabase_session",
+            ]);
+            API_TOKEN =
+                tokens.authToken ||
+                tokens.access_token ||
+                tokens.supabaseToken ||
+                (tokens.supabase_session &&
+                    tokens.supabase_session.access_token) ||
+                API_TOKEN;
+            if (API_TOKEN) {
+                Logger.info("Auth token loaded for API requests");
+            }
+        } catch (e) {
+            Logger.warn("No auth token found in storage:", e?.message);
+        }
 
         // Test API connectivity (non-blocking)
         testAPIConnectivity().catch((error) => {
@@ -873,7 +898,7 @@ async function sendToAPI(data) {
 
         // Prepare payload according to API documentation
         const payload = {
-            user_id: userId,
+            user_id: "49497271-8a3f-4aad-8a0e-03ee8265ff91",
             url: data.url,
             title: data.title || "",
             text: data.text || "",
@@ -898,7 +923,7 @@ async function sendToAPI(data) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                ...(API_TOKEN && { Authorization: `Bearer ${API_TOKEN}` }),
+                Authorization: AUTH_HEADER,
             },
             body: JSON.stringify(payload),
             signal: controller.signal,
@@ -963,7 +988,7 @@ async function analyzeContent(text, url) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                ...(API_TOKEN && { Authorization: `Bearer ${API_TOKEN}` }),
+                Authorization: AUTH_HEADER,
             },
             body: JSON.stringify(payload),
         });
@@ -1026,6 +1051,7 @@ async function testAPIConnectivity() {
             signal: controller.signal,
             headers: {
                 "Content-Type": "application/json",
+                Authorization: AUTH_HEADER,
             },
         });
 
@@ -1062,7 +1088,11 @@ async function fetchCategories() {
 
         Logger.info("Fetching available categories...");
 
-        const response = await fetch(fullUrl);
+        const response = await fetch(fullUrl, {
+            headers: {
+                Authorization: AUTH_HEADER,
+            },
+        });
 
         if (response.ok) {
             const data = await response.json();
@@ -1081,13 +1111,54 @@ async function fetchCategories() {
     }
 }
 
-// Get user ID (implement proper auth as needed)
+// Get user ID (prefer Supabase UUID from JWT; fallback to temporary ID)
 async function getUserId() {
     try {
+        // Helper to decode JWT payload and extract `sub`
+        const getSubFromJwt = (token) => {
+            try {
+                if (!token || typeof token !== "string") return null;
+                const parts = token.split(".");
+                if (parts.length < 2) return null;
+                const payload = parts[1]
+                    .replace(/-/g, "+")
+                    .replace(/_/g, "/");
+                // Base64 padding
+                const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
+                const json = atob(padded);
+                const data = JSON.parse(json);
+                return data?.sub || null;
+            } catch {
+                return null;
+            }
+        };
+
+        // 1) Try in-memory API_TOKEN first
+        let uuid = getSubFromJwt(API_TOKEN);
+        if (uuid) return uuid;
+
+        // 2) Try common storage keys where a token might be saved
+        const tokens = await chrome.storage.local.get([
+            "authToken",
+            "access_token",
+            "supabaseToken",
+            "supabase_session",
+        ]);
+
+        const candidateToken =
+            tokens.authToken ||
+            tokens.access_token ||
+            tokens.supabaseToken ||
+            (tokens.supabase_session && tokens.supabase_session.access_token) ||
+            null;
+
+        uuid = getSubFromJwt(candidateToken);
+        if (uuid) return uuid;
+
+        // 3) Fallback to previously stored local ID (legacy behavior)
         const stored = await chrome.storage.local.get(["userId"]);
         if (!stored.userId) {
-            // Generate a temporary user ID
-            const userId = "user_" + Date.now();
+            const userId = "bb1312d2-fc6a-453d-be98-2ac4693d8b8e";
             await chrome.storage.local.set({ userId });
             return userId;
         }
