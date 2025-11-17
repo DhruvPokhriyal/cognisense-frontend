@@ -234,11 +234,3 @@ For issues, feature requests, or questions:
 ---
 
 **Built with ❤️ for digital wellness and productivity**
-
-### What was fixed:
-- ✅ Added root `manifest.json` (copied from `public/manifest.json`)
-- ✅ Fixed `vite-plugin-static-copy` version from `^0.24.0` to `^3.1.4` 
-- ✅ Verified build works and generates correct `dist` structure
-- ✅ Confirmed all entry points exist: `background/background.js`, `content/contentScript.js`, `popup/`, `options/`
-
-The extension is now ready to load and should work properly in Chrome/Edge!
