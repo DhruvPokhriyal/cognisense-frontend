@@ -665,6 +665,7 @@ const Logger = {
 // Tracking state management
 let isTrackingPaused = false;
 let currentActiveTab = null;
+let currentActiveTabId = null;
 let tabStartTime = null;
 
 // Track user activity
@@ -1359,6 +1360,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 
         // Start tracking the new tab (if not paused)
         currentActiveTab = tab.url;
+        currentActiveTabId = activeInfo.tabId;
         if (!isTrackingPaused) {
             tabStartTime = Date.now();
             console.log(
@@ -1412,6 +1414,9 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 
             // Update current tab
             currentActiveTab = tab.url;
+            if (tab.active) {
+                currentActiveTabId = tabId;
+            }
 
             // Start timing if not paused
             if (!isTrackingPaused) {
@@ -1430,6 +1435,36 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
             await requestContentAnalysis(tabId);
         } catch (error) {
             console.error("Error tracking tab update:", error);
+        }
+    }
+});
+
+// Track tab closures so we don't lose the active tab's accumulated time
+chrome.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
+    console.log(`🗑️ [BACKGROUND] Tab removed: ${tabId}`);
+
+    try {
+        if (
+            tabId === currentActiveTabId &&
+            currentActiveTab &&
+            tabStartTime &&
+            !isTrackingPaused
+        ) {
+            const timeSpent = Date.now() - tabStartTime;
+            console.log(
+                `⏰ [BACKGROUND] Tab closed: saving ${Math.round(
+                    timeSpent / 1000
+                )}s for ${currentActiveTab}`
+            );
+            await saveTabTime(currentActiveTab, timeSpent);
+        }
+    } catch (error) {
+        console.error("Error handling tab removal:", error);
+    } finally {
+        if (tabId === currentActiveTabId) {
+            currentActiveTabId = null;
+            currentActiveTab = null;
+            tabStartTime = null;
         }
     }
 });
