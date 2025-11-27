@@ -179,28 +179,26 @@ const DEFAULT_CATEGORY_PATTERNS = {
 
 function categorizeUrl(url, userCategories = {}) {
     try {
-        const domain = new URL(url).hostname.toLowerCase();
+        const parsed = new URL(url);
+        const hostname = parsed.hostname.toLowerCase();
+        const fullUrl = (parsed.hostname + parsed.pathname + (parsed.search || '')).toLowerCase();
+
+        // Helper to check a pattern against both hostname and the full URL (so subpaths can match)
+        const matchesPattern = (pattern) => {
+            const p = pattern.toLowerCase();
+            return hostname.includes(p) || fullUrl.includes(p);
+        };
 
         // Check user-defined categories first
         for (const [category, patterns] of Object.entries(userCategories)) {
-            if (
-                patterns.some((pattern) =>
-                    domain.includes(pattern.toLowerCase())
-                )
-            ) {
+            if (patterns.some((pattern) => matchesPattern(pattern))) {
                 return category;
             }
         }
 
         // Check default patterns
-        for (const [category, patterns] of Object.entries(
-            DEFAULT_CATEGORY_PATTERNS
-        )) {
-            if (
-                patterns.some((pattern) =>
-                    domain.includes(pattern.toLowerCase())
-                )
-            ) {
+        for (const [category, patterns] of Object.entries(DEFAULT_CATEGORY_PATTERNS)) {
+            if (patterns.some((pattern) => matchesPattern(pattern))) {
                 return category;
             }
         }
